@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+	<!-- <script type="text/javascript" src="js/phaser.min.js"></script> -->
+<script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 600, 'div', '', {preload: preload, create: create, update: update})
+
+var field,
+    player,
+    cursors,
+    bullets,
+    fireButton,
+    stars,
+    scoreText
+
+var bulletTime = 0
+var score = 0
+
+function preload() {
+  // Create assets
+  game.load.image('space', 'assets/spacefield.png')
+  game.load.image('rocket', 'assets/rocket.png')
+  game.load.image('shot', 'assets/bullet.png')
+  game.load.image('star', 'assets/star.png')
+}
+
+function create() {
+  // Field (Background)
+  field = game.add.tileSprite(0, 0, 800, 600, 'space')
+
+  // Players
+  player = game.add.sprite(game.world.centerX, game.world.centerY + 200, 'rocket')
+  player.scale.setTo(.1)
+  game.physics.enable(player)
+
+  // Keys
+  cursors = game.input.keyboard.createCursorKeys()
+
+  // Bullets physics
+  bullets = game.add.group()
+  bullets.enableBody = true
+  bullets.createMultiple(30, 'shot')
+  bullets.setAll('anchor.x', 0.5)
+  bullets.setAll('anchor.y', 1)
+  bullets.setAll('outOfBoundsKill', true)
+  bullets.setAll('checkWorldBounds', true)
+
+  // Star physics
+  stars = game.add.group()
+  stars.enableBody = true
+
+  createStars()
+  // Adds initial score
+  scoreText = game.add.text(0,500, 'Score: 0', {font: '32px', fill: '#fff'})
+
+  fireButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR)
+
+}
+
+function update() {
+
+  // When a shot hits a star
+  game.physics.arcade.overlap(bullets, stars, collisionHandler, null, this)
+
+  // Make the background seem like it is scrolling
+  field.tilePosition.y += 15
+
+  // The space ship won't drop off
+  player.body.velocity.x = 0
+
+  // Player controls
+  if(cursors.left.isDown) {
+    player.body.velocity.x = -300
+  }
+  else if( cursors.right.isDown) {
+    player.body.velocity.x = 300
+  }
+
+  // Check if the player is firing
+  if(fireButton.isDown) {
+    fireBullet()
+  }
+
+  // Update score
+  scoreText.text = 'Score: ' + score
+}
+
+/**
+ * Fires a bullet
+ */
+function fireBullet() {
+  if(game.time.now > bulletTime) {
+    bullet = bullets.getFirstExists(false)
+    if(bullet) {
+      // Make the shot apepear right about the player
+      bullet.reset(player.x + 14, player.y)
+      // Bullet speed
+      bullet.body.velocity.y = -1000
+      // Update bullet time
+      bulletTime = game.time.now + 200
+    }
+  }
+}
+
+/**
+ * Creates the targets (stars)
+ */
+function createStars() {
+  // Place stars accross the screen
+  for (var y = 0; y < 4; y++) {
+    for(var x = 0; x < 10; x++) {
+      // Creates stars in a common pattern
+      var star  = stars.create(x * 60, y * 50, 'star')
+      star.anchor.setTo(0.5)
+    }
+  }
+  // Position for star group
+  stars.x = 100;
+  stars.y = 50
+
+  // Moves the stars around (see https://phaser.io/docs/2.3.0/Phaser.Tween.html for more information on tweens)
+  var tween = game.add.tween(stars).to({x:200},2000, Phaser.Easing.Linear.None, true, 0, 1000, true)
+  tween.onRepeat.add(descend, this)
+}
+
+/**
+ * Function to repeat for stars
+ */
+function descend() {
+  stars.decend += 100
+}
+
+/**
+ * When a bullet hits a star, kill the objects and increase the score.
+ */
+function collisionHandler (bullet, enemy) {
+  bullet.kill()
+  enemy.kill()
+  score += 100
+}
+</script>
+
+</body>
+</html>
